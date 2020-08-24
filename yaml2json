@@ -1,0 +1,44 @@
+#!/bin/python
+
+import json
+import os
+import re
+import sys
+import yaml
+
+class AppException(Exception):
+    pass
+
+def main(*files, pretty=True, write=False, overwrite=False):
+    def dump(d):
+        if pretty:
+            return json.dumps(d, indent=2)
+        else:
+            return json.dumps(d)
+
+    try:
+        if len(files) == 0:
+            d = yaml.load(sys.stdin, Loader=yaml.Loader)
+            print(dump(d))
+        else:
+            for fp in files:
+                with open(fp, 'r') as f:
+                    d = yaml.load(f, Loader=yaml.Loader)
+                if write  or overwrite:
+                    out_fn = re.sub('''\.\w+\Z''', '.json', fp)
+                    if not overwrite and os.path.exists(out_fn):
+                        raise AppException('File already exists: {}'.format(out_fn))
+                    else:
+                        with open(out_fn, 'w') as f:
+                            print(dump(d), file=f)
+                print(dump(d))
+
+    except KeyboardInterrupt:
+        pass
+    except AppException as e:
+        print(e, file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == '__main__':
+    import fire
+    fire.Fire(main)
